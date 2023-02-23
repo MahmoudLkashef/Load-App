@@ -8,8 +8,11 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
+import android.view.animation.AccelerateInterpolator
 import android.view.animation.LinearInterpolator
+import androidx.core.content.withStyledAttributes
 import com.udacity.R
 import com.udacity.model.ButtonState
 import kotlin.properties.Delegates
@@ -28,10 +31,18 @@ class LoadingButton @JvmOverloads constructor(
 
     private var isCompleted=false
 
+    private var textColor=0
+    private var primaryBackgroundColor=0
+
     // ANTI_ALIAS_FLAG to make edges of the shapes smooth
     private val rectanglePaint=Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style=Paint.Style.FILL
-        color=context.getColor(R.color.colorPrimary)
+        color=primaryBackgroundColor
+    }
+
+    private val progressRectanglePaint=Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style=Paint.Style.FILL
+        color=context.getColor(R.color.colorPrimaryDark)
     }
 
     private val circlePaint=Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -48,16 +59,14 @@ class LoadingButton @JvmOverloads constructor(
         }
     }
 
-    private val rectangleAnimator = ValueAnimator.ofFloat(0f,width.toFloat()).apply {
+    private var rectangleAnimator = ValueAnimator.ofFloat(0f, 970f).apply {
         duration=1000 //time to complete the animation
-        interpolator=LinearInterpolator() // constant rate progress
+        interpolator= LinearInterpolator() // constant rate progress
         addUpdateListener {
             rectangleWidth= it.animatedValue as Float
-            rectanglePaint.color=context.getColor(R.color.colorPrimaryDark)
             invalidate()
         }
     }
-
 
     var buttonState: ButtonState by Delegates.observable<ButtonState>(ButtonState.Completed) { p, old, new ->
         when(new){
@@ -81,6 +90,10 @@ class LoadingButton @JvmOverloads constructor(
 
 
     init {
+        context.withStyledAttributes(attrs,R.styleable.LoadingButton){
+            textColor=getColor(R.styleable.LoadingButton_textColor,0)
+            primaryBackgroundColor=getColor(R.styleable.LoadingButton_backgroundColor,0)
+        }
         rectangleText="Download"
     }
 
@@ -90,8 +103,8 @@ class LoadingButton @JvmOverloads constructor(
         canvas?.drawRectangle()
         canvas?.drawCircle()
         if(isCompleted){
-            rectanglePaint.color=context.getColor(R.color.colorPrimary)
-            circlePaint.color=Color.TRANSPARENT }
+            progressRectanglePaint.color=primaryBackgroundColor
+            circlePaint.color=Color.TRANSPARENT}
         else circlePaint.color=context.getColor(R.color.colorAccent)
         invalidate()
     }
@@ -106,18 +119,22 @@ class LoadingButton @JvmOverloads constructor(
     }
     private fun Canvas.drawRectangle(){
         drawRectangleBackground()
+        drawProgressRectangleBackground()
         drawRectangleText()
     }
     private fun Canvas.drawRectangleBackground(){
         val rectangle= Rect(0,0,width,height)
         drawRect(rectangle,rectanglePaint)
     }
-
+    private fun Canvas.drawProgressRectangleBackground(){
+        val rectangle= Rect(0,0, rectangleWidth.toInt(),height)
+        drawRect(rectangle,progressRectanglePaint)
+    }
     private fun Canvas.drawRectangleText(){
         val textPaint=Paint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize=50.0f
             textAlign=Paint.Align.CENTER
-            color= Color.WHITE
+            color= textColor
         }
 
         /*
